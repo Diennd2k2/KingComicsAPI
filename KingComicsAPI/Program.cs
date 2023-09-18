@@ -17,13 +17,13 @@ builder.Services.AddControllers().AddNewtonsoftJson(options =>
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-/*builder.Services.AddCors(option =>
+builder.Services.AddCors(option =>
 {
     option.AddPolicy("MyPolicy", builder =>
     {
         builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
     });
-});*/
+});
 builder.Services.AddDbContext<AppDbContext>(option =>
 {
     option.UseNpgsql(builder.Configuration.GetConnectionString("PostgreSQLConnectionString"));
@@ -63,7 +63,7 @@ app.UseStaticFiles();
 
 /*app.UseHttpsRedirection();*/
 
-/*app.UseCors("MyPolicy");*/
+app.UseCors("MyPolicy");
 
 app.UseAuthentication();
 

@@ -31,6 +31,20 @@ namespace KingComicsAPI.Controllers
             return Ok(chapters);
         }
 
+        [HttpGet("chapter/{chapterId}")]
+        public async Task<IActionResult> GetChapterById(Guid chapterId)
+        {
+            var chapter = await _context.Chapters.Include(i => i.Images).FirstOrDefaultAsync(c => c.Chapter_id == chapterId);
+            chapter.Images = chapter.Images.OrderBy(i => i.Arrange).ToList();
+
+            if (chapter == null)
+            {
+                return NotFound("Chapter not found.");
+            }
+
+            return Ok(chapter);
+        }
+
         [HttpPost("{comicId}")]
         public async Task<IActionResult> Add(Guid comicId, [FromBody] ChapterViewModel chapterVM)
         {
@@ -70,6 +84,7 @@ namespace KingComicsAPI.Controllers
             }
 
             chapter.Images = images;
+            comic.UpdatedAt = DateTime.UtcNow;
 
             _context.Chapters.Add(chapter);
             await _context.SaveChangesAsync();
@@ -77,29 +92,40 @@ namespace KingComicsAPI.Controllers
             return Ok();
         }
 
-
-        [HttpPut("{comicId}/{chapterId}")]
-        public async Task<IActionResult> Update(Guid comicId, Guid chapterId, [FromBody] ChapterViewModel chapterVM)
+        [HttpPut("{chapterId}")]
+        public async Task<IActionResult> Update(Guid chapterId, [FromBody] ChapterViewModel chapterVM)
         {
-            var comic = await _context.Comics.FindAsync(comicId);
-            if (comic == null)
-            {
-                return NotFound();
-            }
-
-            var chapter = await _context.Chapters.Where(c => c.Chapter_id == chapterId && c.Comic_id == comicId).FirstOrDefaultAsync();
+            var chapter = await _context.Chapters.Include(i => i.Images).FirstOrDefaultAsync(c => c.Chapter_id == chapterId);
 
             if (chapter == null)
             {
-                return NotFound();
+                return NotFound("Chapter not found.");
             }
+
+            _context.Images.RemoveRange(chapter.Images);
 
             chapter.Title = chapterVM.Title;
             chapter.Slug = chapterVM.Slug;
             chapter.Arrange = chapterVM.Arrange;
             chapter.UpdatedAt = DateTime.UtcNow;
 
-            _context.Chapters.Update(chapter);
+            var newImages = new List<Image>();
+            int imageArrange = 1;
+            foreach (var imageUrl in chapterVM.ImageUrls)
+            {
+                var image = new Image
+                {
+                    Image_id = Guid.NewGuid(),
+                    UrlImage = imageUrl,
+                    Arrange = imageArrange,
+                    Chapter = chapter
+                };
+
+                newImages.Add(image);
+                imageArrange++;
+            }
+
+            _context.Images.AddRange(newImages);
 
             await _context.SaveChangesAsync();
 
@@ -107,22 +133,17 @@ namespace KingComicsAPI.Controllers
 
         }
 
-        [HttpDelete("{comicId}/{chapterId}")]
-        public async Task<IActionResult> Delete(Guid comicId, Guid chapterId)
+        [HttpDelete("{chapterId}")]
+        public async Task<IActionResult> Delete(Guid chapterId)
         {
-            var comic = await _context.Comics.FindAsync(comicId);
-            if (comic == null)
-            {
-                return NotFound();
-            }
-
-            var chapter = await _context.Chapters.Where(c=>c.Chapter_id==chapterId && c.Comic_id ==comicId).FirstOrDefaultAsync();
+            var chapter = await _context.Chapters.Include(i => i.Images).FirstOrDefaultAsync(c => c.Chapter_id == chapterId);
 
             if(chapter == null)
             {
-                return NotFound();
+                return NotFound("Chapter not found");
             }
 
+            _context.Images.RemoveRange(chapter.Images);
             _context.Chapters.Remove(chapter);
             await _context.SaveChangesAsync();
 
