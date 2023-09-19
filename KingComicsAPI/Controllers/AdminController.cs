@@ -66,6 +66,51 @@ namespace KingComicsAPI.Controllers
             return Ok(new {Message="Admin register success!"});
         }
 
+        [HttpPut("{adminId}")]
+        public async Task<IActionResult> UpdateAdmin(Guid adminId, [FromBody] Admin adminObj)
+        {
+            var admin = await _context.Admins.FirstOrDefaultAsync(a => a.Admin_id == adminId);
+            if (admin == null)
+                return BadRequest();
+            if (await CheckEmailExistAsync(admin.Email))
+                return BadRequest(new { Message = "Email Already Exist!" });
+
+            var pass = CheckPasswordStrength(admin.Password);
+            if (!string.IsNullOrEmpty(pass))
+            {
+                return BadRequest(new { Message = pass.ToString() });
+            }
+            admin.FullName = adminObj.FullName;
+            admin.Email = adminObj.Email;
+            admin.Password = PasswordHasher.HashPassword(adminObj.Password);
+            admin.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            return Ok(new { Message = "Admin update success!" });
+        }
+
+        [HttpDelete("{adminId}")]
+        public async Task<IActionResult> DeleteAdmin(Guid adminId)
+        {
+            var admin = await _context.Admins.FirstOrDefaultAsync(a => a.Admin_id == adminId);
+            _context.Admins.Remove(admin);
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
+
+        [Authorize]
+        [HttpGet]
+        public async Task<ActionResult<Admin>> GetAllAdmin()
+        {
+            return Ok(await _context.Admins.ToListAsync());
+        }
+
+        [HttpGet("{adminId}")]
+        public async Task<ActionResult<Admin>> GetAdminById(Guid adminId)
+        {
+            var admin = await _context.Admins.FirstOrDefaultAsync(a => a.Admin_id == adminId);
+            return Ok(admin);
+        }
+
         private Task<bool> CheckEmailExistAsync(string email)=> _context.Admins.AnyAsync(x => x.Email == email);
 
         private string CheckPasswordStrength(string password)
@@ -106,13 +151,6 @@ namespace KingComicsAPI.Controllers
             };
             var token = jwtTokenHandler.CreateToken(tokenDescriptor);
             return jwtTokenHandler.WriteToken(token);
-        }
-
-        [Authorize]
-        [HttpGet]        
-        public async Task<ActionResult<Admin>> GetAllAdmin()
-        {
-            return Ok(await _context.Admins.ToListAsync());
         }
     }
 }
