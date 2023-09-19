@@ -21,8 +21,9 @@ namespace KingComicsAPI.Controllers
         public AdminController(AppDbContext context)
         {
             _context = context;   
-        } 
+        }
 
+        [Authorize]
         [HttpPost("login")]
         public async Task<IActionResult> LoginAdmin([FromBody] Admin adminObj)
         {
@@ -42,6 +43,7 @@ namespace KingComicsAPI.Controllers
             return Ok(new { Token = token, Message = "Login Success" });
         }
 
+        [Authorize]
         [HttpPost("register")]
         public async Task<IActionResult> RegisterAdmin([FromBody] Admin adminObj)
         {
@@ -58,12 +60,76 @@ namespace KingComicsAPI.Controllers
 
             adminObj.Admin_id = Guid.NewGuid();
             adminObj.Password = PasswordHasher.HashPassword(adminObj.Password);
-            adminObj.Role = "admin";
+            adminObj.Role = "user";
             adminObj.CreatedAt = DateTime.UtcNow;
             adminObj.UpdatedAt = DateTime.UtcNow;
             await _context.Admins.AddAsync(adminObj);
             await _context.SaveChangesAsync();
             return Ok(new {Message="Admin register success!"});
+        }
+
+        [Authorize]
+        [HttpPut("{adminId}")]
+        public async Task<IActionResult> UpdateAdmin(Guid adminId, [FromBody] Admin adminObj)
+        {
+            var admin = await _context.Admins.FirstOrDefaultAsync(a => a.Admin_id == adminId);
+            if (admin == null)
+                return BadRequest();
+            if (await CheckEmailExistAsync(admin.Email))
+                return BadRequest(new { Message = "Email Already Exist!" });
+
+            var pass = CheckPasswordStrength(admin.Password);
+            if (!string.IsNullOrEmpty(pass))
+            {
+                return BadRequest(new { Message = pass.ToString() });
+            }
+            admin.FullName = adminObj.FullName;
+            admin.Email = adminObj.Email;
+            admin.Role = adminObj.Role;
+            admin.Password = PasswordHasher.HashPassword(adminObj.Password);
+            admin.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            return Ok(new { Message = "Admin update success!" });
+        }
+
+        [Authorize]
+        [HttpDelete("{adminId}")]
+        public async Task<IActionResult> DeleteAdmin(Guid adminId)
+        {
+            var admin = await _context.Admins.FirstOrDefaultAsync(a => a.Admin_id == adminId);
+            _context.Admins.Remove(admin);
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
+
+        [HttpGet("total-admins")]
+        public async Task<ActionResult<int>> GetTotalNumberOfAdmins()
+        {
+            try
+            {
+                int totalAdmins = await _context.Admins.CountAsync();
+
+                return Ok(totalAdmins);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [Authorize]
+        [HttpGet]
+        public async Task<ActionResult<Admin>> GetAllAdmin()
+        {
+            return Ok(await _context.Admins.ToListAsync());
+        }
+
+        [Authorize]
+        [HttpGet("{adminId}")]
+        public async Task<ActionResult<Admin>> GetAdminById(Guid adminId)
+        {
+            var admin = await _context.Admins.FirstOrDefaultAsync(a => a.Admin_id == adminId);
+            return Ok(admin);
         }
 
         private Task<bool> CheckEmailExistAsync(string email)=> _context.Admins.AnyAsync(x => x.Email == email);
@@ -106,13 +172,6 @@ namespace KingComicsAPI.Controllers
             };
             var token = jwtTokenHandler.CreateToken(tokenDescriptor);
             return jwtTokenHandler.WriteToken(token);
-        }
-
-        [Authorize]
-        [HttpGet]        
-        public async Task<ActionResult<Admin>> GetAllAdmin()
-        {
-            return Ok(await _context.Admins.ToListAsync());
         }
     }
 }

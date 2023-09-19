@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace KingComicsAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20230915084606_v1")]
+    [Migration("20230920140119_v1")]
     partial class v1
     {
         /// <inheritdoc />
@@ -116,6 +116,9 @@ namespace KingComicsAPI.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Comic_id");
+
+                    b.HasIndex("Title")
+                        .IsUnique();
 
                     b.ToTable("comic", (string)null);
                 });

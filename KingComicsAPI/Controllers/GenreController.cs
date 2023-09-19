@@ -1,6 +1,7 @@
 ﻿using Humanizer.Localisation;
 using KingComicsAPI.Context;
 using KingComicsAPI.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -31,6 +32,7 @@ namespace KingComicsAPI.Controllers
             return Ok(genre);
         }
 
+        [Authorize]
         [HttpPost]
         public async Task<IActionResult> Add([FromBody] Genre genre)
         {
@@ -40,6 +42,7 @@ namespace KingComicsAPI.Controllers
             return Ok(genre);
         }
 
+        [Authorize]
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] Genre genre)
         {
@@ -51,6 +54,7 @@ namespace KingComicsAPI.Controllers
             return Ok();
         }
 
+        [Authorize]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {

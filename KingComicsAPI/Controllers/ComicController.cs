@@ -3,6 +3,7 @@ using CloudinaryDotNet.Actions;
 using KingComicsAPI.Context;
 using KingComicsAPI.Models;
 using KingComicsAPI.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -26,6 +27,7 @@ namespace KingComicsAPI.Controllers
             var comics = await _context.Comics
                     .Include(c => c.ComicGenres)
                     .ThenInclude(cg => cg.Genre)
+                    .OrderByDescending(c=>c.UpdatedAt)
                     .ToListAsync();
             return Ok(comics);
         }
@@ -60,12 +62,13 @@ namespace KingComicsAPI.Controllers
             }
         }
 
+        [Authorize]
         [HttpPost]
         public async Task<IActionResult> Add([FromForm] ComicGenreViewModel comicVM)
         {
             if (comicVM.formFile == null || comicVM.formFile.Length == 0)
             {
-                return BadRequest();
+                return BadRequest("Not Found Image.");
             }
             var account = new Account(
                 "dwvtpyyft",
@@ -113,18 +116,21 @@ namespace KingComicsAPI.Controllers
             return Ok();
         }
 
+        [Authorize]
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(Guid id, [FromForm] ComicGenreViewModel comicVM)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
             var comic = await _context.Comics.Include(c => c.ComicGenres).ThenInclude(g => g.Genre).FirstOrDefaultAsync(c => c.Comic_id == id);
             if (comic == null)
             {
                 return NotFound();
             }
-            if (comicVM.formFile == null || comicVM.formFile.Length == 0)
-            {
-                return BadRequest();
-            }
+
             var account = new Account(
                 "dwvtpyyft",
                 "187697336685363",
@@ -132,53 +138,134 @@ namespace KingComicsAPI.Controllers
             );
             var cloudinary = new Cloudinary(account);
 
-            var now = DateTime.Now;
-            var publicId = $"{now:yyyyMMddHHmmss}-{Path.GetFileNameWithoutExtension(comicVM.formFile.FileName)}";
-            using (var stream = comicVM.formFile.OpenReadStream())
+            bool shouldUpdateImage = false;
+
+            if (comicVM.formFile != null && comicVM.formFile.Length != 0)
             {
-                var uploadParams = new ImageUploadParams()
-                {
-                    File = new FileDescription(comicVM.formFile.FileName, stream),
-                    PublicId = publicId
-                };
+                shouldUpdateImage = true;
 
-                var uploadResult = await cloudinary.UploadAsync(uploadParams);
-                var imageUrl = uploadResult.SecureUrl.ToString();
-
-                comic.Title = comicVM.Title;
-                comic.Slug = comicVM.Slug;
-                comic.Description = comicVM.Description;
-                comic.CoverImage = imageUrl;
-                comic.Status = comicVM.Status;
-                comic.UpdatedAt = DateTime.UtcNow;
-                var existingIds = comic.ComicGenres.Select(c => c.Genre_id).ToList();
-                var selectedIds = comicVM.GenreIds.ToList();
-                var toAdd = selectedIds.Except(existingIds).ToList();
-                var toRemove = existingIds.Except(selectedIds).ToList();
-                comic.ComicGenres = comic.ComicGenres.Where(x => !toRemove.Contains(x.Genre_id)).ToList();
-                foreach (var item in toAdd)
+                if (!string.IsNullOrEmpty(comic.CoverImage))
                 {
-                    comic.ComicGenres.Add(new Comic_Genre()
-                    {
-                        Comic_id = comic.Comic_id,
-                        Genre_id = item
-                    });
+                    var publicIds = comic.CoverImage.Split('/').Last().Split('.').First();
+                    var deleteParams = new DeletionParams(publicIds);
+                    var deleteResult = await cloudinary.DestroyAsync(deleteParams);
                 }
-                _context.Comics.Update(comic);
-                await _context.SaveChangesAsync();
+
+                var now = DateTime.Now;
+                var publicId = $"{now:yyyyMMddHHmmss}-{Path.GetFileNameWithoutExtension(comicVM.formFile.FileName)}";
+                using (var stream = comicVM.formFile.OpenReadStream())
+                {
+                    var uploadParams = new ImageUploadParams()
+                    {
+                        File = new FileDescription(comicVM.formFile.FileName, stream),
+                        PublicId = publicId
+                    };
+
+                    var uploadResult = await cloudinary.UploadAsync(uploadParams);
+                    var imageUrl = uploadResult.SecureUrl.ToString();
+                    comic.CoverImage = imageUrl;
+                }
             }
-               
+
+            if (!shouldUpdateImage)
+            {
+                comic.CoverImage = comicVM.CoverImage;
+            }
+            comic.Title = comicVM.Title;
+            comic.Slug = comicVM.Slug;
+            comic.Description = comicVM.Description;
+            comic.Status = comicVM.Status;
+            comic.UpdatedAt = DateTime.UtcNow;
+            var existingIds = comic.ComicGenres.Select(c => c.Genre_id).ToList();
+            var selectedIds = comicVM.GenreIds.ToList();
+            var toAdd = selectedIds.Except(existingIds).ToList();
+            var toRemove = existingIds.Except(selectedIds).ToList();
+            comic.ComicGenres = comic.ComicGenres.Where(x => !toRemove.Contains(x.Genre_id)).ToList();
+            foreach (var item in toAdd)
+            {
+                comic.ComicGenres.Add(new Comic_Genre()
+                {
+                    Comic_id = comic.Comic_id,
+                    Genre_id = item
+                });
+            }
+            _context.Comics.Update(comic);
+            await _context.SaveChangesAsync();
             return Ok();
         }
 
+        [Authorize]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(Guid id)
         {
             var comic = await _context.Comics.Include(c => c.ComicGenres).FirstOrDefaultAsync(c => c.Comic_id == id);
+            var account = new Account(
+               "dwvtpyyft",
+               "187697336685363",
+               "IwKBgcSdAvNC1Ilp-1ZKDLM56NU"
+           );
+
+            var cloudinary = new Cloudinary(account);
+            if (!string.IsNullOrEmpty(comic.CoverImage))
+            {
+                var publicIds = comic.CoverImage.Split('/').Last().Split('.').First();
+                var deleteParams = new DeletionParams(publicIds);
+                var deleteResult = await cloudinary.DestroyAsync(deleteParams);
+            }
+
             _context.ComicGenres.RemoveRange(comic.ComicGenres);
             _context.Comics.Remove(comic);
             await _context.SaveChangesAsync();
             return Ok();
+        }
+
+        [HttpGet("total-comics")]
+        public async Task<ActionResult<int>> GetTotalNumberOfComics()
+        {
+            try
+            {
+                int totalComics = await _context.Comics.CountAsync();
+
+                return Ok(totalComics);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpGet("views/{comicId}")]
+        public async Task<ActionResult<int>> GetTotalComicViews(Guid comicId)
+        {
+            try
+            {
+                int totalViews = await _context.Chapters
+                    .Where(chapter => chapter.Comic_id == comicId)
+                    .SumAsync(chapter => chapter.Views);
+
+                return Ok(totalViews);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpGet("total-chapters/{comicId}")]
+        public async Task<ActionResult<int>> GetTotalChaptersOfComic(Guid comicId)
+        {
+            try
+            {
+                int totalChapters = await _context.Chapters
+                    .Where(chapter => chapter.Comic_id == comicId)
+                    .CountAsync();
+
+                return Ok(totalChapters);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
     }
 }

@@ -24,7 +24,7 @@ namespace KingComicsAPI.Context
         {
             modelBuilder.Entity<Admin>().ToTable("admin");
             modelBuilder.Entity<User>().ToTable("user");
-            modelBuilder.Entity<Comic>().ToTable("comic");
+            modelBuilder.Entity<Comic>().ToTable("comic").HasIndex(c=>c.Title).IsUnique();
             modelBuilder.Entity<Genre>().ToTable("genre");
             modelBuilder.Entity<Comic_Genre>().ToTable("comic_genre").HasKey(e => new {e.Comic_id,e.Genre_id});
             modelBuilder.Entity<Comic_Genre>().HasOne(c => c.Comic).WithMany(c => c.ComicGenres).HasForeignKey(c => c.Comic_id);

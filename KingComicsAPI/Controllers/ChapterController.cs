@@ -1,6 +1,7 @@
 ﻿using KingComicsAPI.Context;
 using KingComicsAPI.Models;
 using KingComicsAPI.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -45,6 +46,7 @@ namespace KingComicsAPI.Controllers
             return Ok(chapter);
         }
 
+        [Authorize]
         [HttpPost("{comicId}")]
         public async Task<IActionResult> Add(Guid comicId, [FromBody] ChapterViewModel chapterVM)
         {
@@ -92,6 +94,7 @@ namespace KingComicsAPI.Controllers
             return Ok();
         }
 
+        [Authorize]
         [HttpPut("{chapterId}")]
         public async Task<IActionResult> Update(Guid chapterId, [FromBody] ChapterViewModel chapterVM)
         {
@@ -133,6 +136,32 @@ namespace KingComicsAPI.Controllers
 
         }
 
+        [HttpPost("increment-views/{chapterId}")]
+        public async Task<IActionResult> IncrementChapterViews(Guid chapterId)
+        {
+            try
+            {
+                var chapter = await _context.Chapters
+                    .FirstOrDefaultAsync(c => c.Chapter_id == chapterId);
+
+                if (chapter == null)
+                {
+                    return NotFound();
+                }
+
+                chapter.Views++;
+                _context.Entry(chapter).State = EntityState.Modified;
+                await _context.SaveChangesAsync();
+
+                return Ok(chapter.Views);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [Authorize]
         [HttpDelete("{chapterId}")]
         public async Task<IActionResult> Delete(Guid chapterId)
         {
@@ -148,6 +177,36 @@ namespace KingComicsAPI.Controllers
             await _context.SaveChangesAsync();
 
             return Ok();
+        }
+
+        [HttpGet("total-chapter")]
+        public async Task<ActionResult<int>> GetTotalNumberOfChapter()
+        {
+            try
+            {
+                int totalChapters = await _context.Chapters.CountAsync();
+
+                return Ok(totalChapters);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpGet("views")]
+        public async Task<ActionResult<int>> GetTotalComicViews()
+        {
+            try
+            {
+                int totalViews = await _context.Chapters.SumAsync(chapter => chapter.Views);
+
+                return Ok(totalViews);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
     }
 }

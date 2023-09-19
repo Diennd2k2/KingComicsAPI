@@ -178,6 +178,12 @@ namespace KingComicsAPI.Migrations
                 column: "Comic_id");
 
             migrationBuilder.CreateIndex(
+                name: "IX_comic_Title",
+                table: "comic",
+                column: "Title",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_comic_genre_Genre_id",
                 table: "comic_genre",
                 column: "Genre_id");

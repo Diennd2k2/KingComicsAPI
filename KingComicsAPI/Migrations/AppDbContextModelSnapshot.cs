@@ -114,6 +114,9 @@ namespace KingComicsAPI.Migrations
 
                     b.HasKey("Comic_id");
 
+                    b.HasIndex("Title")
+                        .IsUnique();
+
                     b.ToTable("comic", (string)null);
                 });
 
