@@ -23,7 +23,6 @@ namespace KingComicsAPI.Controllers
             _context = context;   
         }
 
-        [Authorize]
         [HttpPost("login")]
         public async Task<IActionResult> LoginAdmin([FromBody] Admin adminObj)
         {
