@@ -25,10 +25,26 @@ namespace KingComicsAPI.Controllers
         public async Task<IActionResult> GetAll()
         {
             var comics = await _context.Comics
-                    .Include(c => c.ComicGenres)
-                    .ThenInclude(cg => cg.Genre)
-                    .OrderByDescending(c=>c.UpdatedAt)
-                    .ToListAsync();
+                .Include(c => c.ComicGenres)
+                .ThenInclude(cg => cg.Genre)
+                .OrderByDescending(c => c.UpdatedAt).Select(c => new
+                {
+                    comic_id = c.Comic_id,
+                    title = c.Title,
+                    slug = c.Slug,
+                    coverImage = c.CoverImage,
+                    description = c.Description,
+                    status = c.Status,
+                    createdAt = c.CreatedAt,
+                    updatedAt = c.UpdatedAt,
+                    comicGenres = c.ComicGenres.Select(cg => new
+                    {
+                        genre_id = cg.Genre.Genre_id,
+                        genre_Name = cg.Genre.Genre_Name,
+                    })
+                })
+                .ToListAsync();
+
             return Ok(comics);
         }
 
@@ -46,8 +62,24 @@ namespace KingComicsAPI.Controllers
             {
                 var comics = await _context.ComicGenres
                      .Where(cg => cg.Genre.Slug == genre)
-                     .Include(cg => cg.Comic)
-                     .Include(cg => cg.Genre)
+                     .Select(cg => new
+                     {
+                         comic_id = cg.Comic.Comic_id,
+                         title = cg.Comic.Title,
+                         slug = cg.Comic.Slug,
+                         coverImage = cg.Comic.CoverImage,
+                         description = cg.Comic.Description,
+                         status = cg.Comic.Status,
+                         createdAt = cg.Comic.CreatedAt,
+                         updatedAt = cg.Comic.UpdatedAt,
+                         comicGenres = cg.Comic.ComicGenres
+                        .Select(g => new
+                        {
+                            genre_id = g.Genre.Genre_id,
+                            genre_Name = g.Genre.Genre_Name,
+                        })
+                        .ToList()
+                     })
                      .ToListAsync();
                 if (comics == null || comics.Count == 0)
                 {

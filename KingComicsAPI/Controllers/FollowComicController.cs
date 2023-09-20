@@ -51,7 +51,23 @@ namespace KingComicsAPI.Controllers
         {
             var followedComics = await _context.FollowComics
                 .Where(fc => fc.User_id == userId)
-                .Select(fc => fc.Comic)
+                .Select(c => new
+                {
+                    comic_id = c.Comic.Comic_id,
+                    title = c.Comic.Title,
+                    slug = c.Comic.Slug,
+                    coverImage = c.Comic.CoverImage,
+                    description = c.Comic.Description,
+                    status = c.Comic.Status,
+                    createdAt = c.Comic.CreatedAt,
+                    updatedAt = c.Comic.UpdatedAt,
+                    comicGenres = c.Comic.ComicGenres
+                    .Select(g => new
+                    {
+                        genre_id = g.Genre.Genre_id,
+                        genre_Name = g.Genre.Genre_Name,
+                    })
+                })
                 .ToListAsync();
 
             return Ok(followedComics);

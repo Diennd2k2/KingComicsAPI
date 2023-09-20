@@ -27,7 +27,16 @@ namespace KingComicsAPI.Controllers
                 return NotFound();
             }
 
-            var chapters = await _context.Chapters.Where(c=>c.Comic_id== comicId).OrderByDescending(c=>c.Arrange).ToListAsync();
+            var chapters = await _context.Chapters.Where(c=>c.Comic_id== comicId).OrderByDescending(c=>c.Arrange).Select(c=> new
+            {
+                chapter_id = c.Chapter_id,
+                title = c.Title,
+                slug = c.Slug,
+                arrange = c.Arrange,
+                views = c.Views,
+                createdAt = c.CreatedAt,
+                updatedAt = c.UpdatedAt,
+            }).ToListAsync();
 
             return Ok(chapters);
         }
@@ -35,9 +44,23 @@ namespace KingComicsAPI.Controllers
         [HttpGet("chapter/{chapterId}")]
         public async Task<IActionResult> GetChapterById(Guid chapterId)
         {
-            var chapter = await _context.Chapters.Include(i => i.Images).FirstOrDefaultAsync(c => c.Chapter_id == chapterId);
-            chapter.Images = chapter.Images.OrderBy(i => i.Arrange).ToList();
-
+            var chapter = await _context.Chapters
+            .Where(c => c.Chapter_id == chapterId)
+            .Select(c => new
+            {
+                chapter_id = c.Chapter_id,
+                title = c.Title,
+                slug = c.Slug,
+                images = c.Images.OrderBy(i => i.Arrange)
+                    .Select(i => new
+                    {
+                        image_id = i.Image_id,
+                        urlImage = i.UrlImage,
+                        arrange = i.Arrange
+                    })
+                    .ToList()
+            })
+            .FirstOrDefaultAsync();
             if (chapter == null)
             {
                 return NotFound("Chapter not found.");
