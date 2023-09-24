@@ -17,6 +17,7 @@ namespace KingComicsAPI.Models
 
         public Comic Comic { get; set; }
         public ICollection<Image> Images { get; set; }
+        public ICollection<ReadingHistory> ReadingHistories { get; set; }
 
     }
 }

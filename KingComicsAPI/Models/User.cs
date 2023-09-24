@@ -15,5 +15,6 @@ namespace KingComicsAPI.Models
         public DateTime UpdatedAt { get; set; }
 
         public ICollection<FollowComic> FollowComics { get; set;}
+        public ICollection<ReadingHistory> ReadingHistories { get; set;}
     }
 }

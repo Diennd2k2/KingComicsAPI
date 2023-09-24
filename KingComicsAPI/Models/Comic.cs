@@ -18,5 +18,6 @@ namespace KingComicsAPI.Models
         public ICollection<Chapter> Chapters { get; set; }
         public ICollection<FollowComic> FollowComics { get; set; }
         public ICollection<Comic_Genre> ComicGenres { get; set; }
+        public ICollection<ReadingHistory> ReadingHistories { get; set; }
     }
 }

@@ -66,10 +66,16 @@ namespace KingComicsAPI.Controllers
                     {
                         genre_id = g.Genre.Genre_id,
                         genre_Name = g.Genre.Genre_Name,
-                    })
+                    }).ToList(),
+                    readingHistory = _context.ReadingHistories.Where(log => log.User_id == userId && log.Comic_id == c.Comic.Comic_id)
+                    .Select(log => new
+                    {
+                        chapter_id = log.Chapter.Chapter_id,
+                        title = log.Chapter.Title,
+                    }).ToList(),
                 })
                 .ToListAsync();
-
+            followedComics.Reverse();
             return Ok(followedComics);
         }
 

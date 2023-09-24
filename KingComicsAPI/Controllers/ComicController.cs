@@ -41,7 +41,7 @@ namespace KingComicsAPI.Controllers
                     {
                         genre_id = cg.Genre.Genre_id,
                         genre_Name = cg.Genre.Genre_Name,
-                    })
+                    }).ToList(),
                 })
                 .ToListAsync();
 

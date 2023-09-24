@@ -69,7 +69,7 @@ namespace KingComicsAPI.Controllers
             return Ok(chapter);
         }
 
-        [Authorize]
+        
         [HttpPost("{comicId}")]
         public async Task<IActionResult> Add(Guid comicId, [FromBody] ChapterViewModel chapterVM)
         {

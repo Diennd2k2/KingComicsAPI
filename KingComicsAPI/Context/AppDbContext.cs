@@ -18,6 +18,7 @@ namespace KingComicsAPI.Context
         public DbSet<Chapter> Chapters { get; set; }
         public DbSet<Image> Images { get; set; }
         public DbSet<FollowComic> FollowComics { get; set; }
+        public DbSet<ReadingHistory> ReadingHistories { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -39,7 +40,10 @@ namespace KingComicsAPI.Context
             modelBuilder.Entity<FollowComic>().HasOne(c => c.User).WithMany(c => c.FollowComics).HasForeignKey(c => c.User_id);
             modelBuilder.Entity<FollowComic>().HasOne(c => c.Comic).WithMany(c => c.FollowComics).HasForeignKey(c => c.Comic_id);
 
-
+            modelBuilder.Entity<ReadingHistory>().ToTable("reading_history").HasKey(r => new { r.User_id, r.Comic_id, r.Chapter_id });
+            modelBuilder.Entity<ReadingHistory>().HasOne(c => c.User).WithMany(c => c.ReadingHistories).HasForeignKey(c => c.User_id);
+            modelBuilder.Entity<ReadingHistory>().HasOne(c => c.Comic).WithMany(c => c.ReadingHistories).HasForeignKey(c => c.Comic_id);
+            modelBuilder.Entity<ReadingHistory>().HasOne(c => c.Chapter).WithMany(c => c.ReadingHistories).HasForeignKey(c => c.Chapter_id);
         }
     }
 }
