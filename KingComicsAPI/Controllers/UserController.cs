@@ -173,6 +173,7 @@ namespace KingComicsAPI.Controllers
             var identity = new ClaimsIdentity(new Claim[]
             {
                 new Claim(ClaimTypes.Role, user.Role),
+                new Claim(ClaimTypes.NameIdentifier, user.User_id.ToString()),
                 new Claim(ClaimTypes.Name,$"{user.NickName}"),
                 new Claim(ClaimTypes.Email,$"{user.Email}"),
                 new Claim(ClaimTypes.Uri,$"{user.Avatar}")

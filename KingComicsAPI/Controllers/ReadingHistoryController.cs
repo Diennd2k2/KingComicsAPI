@@ -66,6 +66,8 @@ namespace KingComicsAPI.Controllers
                     {
                         log.Comic.Comic_id,
                         log.Comic.Title,
+                        log.Comic.CoverImage,
+                        views = log.Comic.Chapters.Sum(chapter => chapter.Views),
                         Genres = log.Comic.ComicGenres.Select(comicGenre => new
                         {
                             comicGenre.Genre.Genre_id,

@@ -50,6 +50,7 @@ namespace KingComicsAPI.Controllers
             {
                 chapter_id = c.Chapter_id,
                 title = c.Title,
+                arrange = c.Arrange,
                 slug = c.Slug,
                 images = c.Images.OrderBy(i => i.Arrange)
                     .Select(i => new

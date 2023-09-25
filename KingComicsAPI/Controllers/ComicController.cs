@@ -35,6 +35,7 @@ namespace KingComicsAPI.Controllers
                     coverImage = c.CoverImage,
                     description = c.Description,
                     status = c.Status,
+                    views = c.Chapters.Sum(chapter => chapter.Views),
                     createdAt = c.CreatedAt,
                     updatedAt = c.UpdatedAt,
                     comicGenres = c.ComicGenres.Select(cg => new
@@ -51,7 +52,23 @@ namespace KingComicsAPI.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(Guid id)
         {
-            var comic = await _context.Comics.Include(c=>c.ComicGenres).ThenInclude(g=>g.Genre).FirstOrDefaultAsync(c => c.Comic_id == id);
+            var comic = await _context.Comics
+             .Where(c => c.Comic_id == id)
+             .Select(c => new
+             {
+                 comic_id = c.Comic_id,
+                 title = c.Title,
+                 coverImage = c.CoverImage,
+                 description = c.Description,
+                 status = c.Status,
+                 views = c.Chapters.Sum(chapter => chapter.Views),
+                 genre = c.ComicGenres.Select(g => new
+                 {
+                     genre_id = g.Genre.Genre_id,
+                     genre_Name = g.Genre.Genre_Name,
+                 }).ToList()
+             })
+             .FirstOrDefaultAsync();
             return Ok(comic);
         }
 
@@ -70,6 +87,7 @@ namespace KingComicsAPI.Controllers
                          coverImage = cg.Comic.CoverImage,
                          description = cg.Comic.Description,
                          status = cg.Comic.Status,
+                         views = cg.Comic.Chapters.Sum(chapter => chapter.Views),
                          createdAt = cg.Comic.CreatedAt,
                          updatedAt = cg.Comic.UpdatedAt,
                          comicGenres = cg.Comic.ComicGenres
@@ -111,7 +129,7 @@ namespace KingComicsAPI.Controllers
 
             var now = DateTime.Now;
             var publicId = $"{now:yyyyMMddHHmmss}-{Path.GetFileNameWithoutExtension(comicVM.formFile.FileName)}";
-            using(var stream = comicVM.formFile.OpenReadStream())
+            using (var stream = comicVM.formFile.OpenReadStream())
             {
                 var uploadParams = new ImageUploadParams()
                 {
@@ -144,7 +162,7 @@ namespace KingComicsAPI.Controllers
                 _context.Add(comic);
                 await _context.SaveChangesAsync();
             }
-                
+
             return Ok();
         }
 
@@ -293,6 +311,42 @@ namespace KingComicsAPI.Controllers
                     .CountAsync();
 
                 return Ok(totalChapters);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpGet("top-5-comics")]
+        public async Task<ActionResult<IEnumerable<Comic>>> GetTop5Comics()
+        {
+            try
+            {
+                var top5Comics = await _context.Comics
+                    .OrderByDescending(comic => comic.Chapters.Sum(chapter => chapter.Views))
+                    .ThenByDescending(comic => comic.UpdatedAt)
+                    .Take(10).Select(c => new
+                    {
+                        comic_id = c.Comic_id,
+                        title = c.Title,
+                        slug = c.Slug,
+                        coverImage = c.CoverImage,
+                        description = c.Description,
+                        status = c.Status,
+                        views = c.Chapters.Sum(chapter => chapter.Views),
+                        createdAt = c.CreatedAt,
+                        updatedAt = c.UpdatedAt,
+                        comicGenres = c.ComicGenres.Select(cg => new
+                        {
+                            genre_id = cg.Genre.Genre_id,
+                            genre_Name = cg.Genre.Genre_Name,
+                        }).ToList(),
+                    })
+
+                    .ToListAsync();
+
+                return Ok(top5Comics);
             }
             catch (Exception ex)
             {

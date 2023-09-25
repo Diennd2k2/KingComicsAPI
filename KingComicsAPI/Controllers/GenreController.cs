@@ -32,6 +32,13 @@ namespace KingComicsAPI.Controllers
             return Ok(genre);
         }
 
+        [HttpGet("slug/{slug}")]
+        public async Task<IActionResult> GetBySlug(string slug)
+        {
+            var genre = await _context.Genres.FirstOrDefaultAsync(g => g.Slug == slug);
+            return Ok(genre);
+        }
+
         [Authorize]
         [HttpPost]
         public async Task<IActionResult> Add([FromBody] Genre genre)

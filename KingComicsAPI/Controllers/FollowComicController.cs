@@ -55,12 +55,8 @@ namespace KingComicsAPI.Controllers
                 {
                     comic_id = c.Comic.Comic_id,
                     title = c.Comic.Title,
-                    slug = c.Comic.Slug,
                     coverImage = c.Comic.CoverImage,
-                    description = c.Comic.Description,
-                    status = c.Comic.Status,
-                    createdAt = c.Comic.CreatedAt,
-                    updatedAt = c.Comic.UpdatedAt,
+                    views = c.Comic.Chapters.Sum(chapter => chapter.Views),
                     comicGenres = c.Comic.ComicGenres
                     .Select(g => new
                     {
