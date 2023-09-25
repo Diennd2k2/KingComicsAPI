@@ -8,6 +8,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
 using System.Text;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace KingComicsAPI.Controllers
 {
@@ -42,8 +45,9 @@ namespace KingComicsAPI.Controllers
                 return BadRequest(new { Message = "Password is Incorrect" });
             }
 
+            var token = CreateJwt(user);
 
-            return Ok(new { Message = "Login Success" });
+            return Ok(new {Token = token, Message = "Login Success"});
         }
 
         [HttpPost("register")]
@@ -160,6 +164,31 @@ namespace KingComicsAPI.Controllers
                 sb.Append("Password should contain special chars" + Environment.NewLine);
             }
             return sb.ToString();
+        }
+
+        private string CreateJwt(User user)
+        {
+            var jwtTokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.ASCII.GetBytes("kingcomics......");
+            var identity = new ClaimsIdentity(new Claim[]
+            {
+                new Claim(ClaimTypes.Role, user.Role),
+                new Claim(ClaimTypes.Name,$"{user.NickName}"),
+                new Claim(ClaimTypes.Email,$"{user.Email}"),
+                new Claim(ClaimTypes.Uri,$"{user.Avatar}")
+            });
+
+            var credentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256);
+
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = identity,
+                Expires = DateTime.Now.AddDays(1),
+                SigningCredentials = credentials
+            };
+            var token = jwtTokenHandler.CreateToken(tokenDescriptor);
+
+            return jwtTokenHandler.WriteToken(token);
         }
     }
 }

@@ -158,7 +158,8 @@ namespace KingComicsAPI.Controllers
             var identity = new ClaimsIdentity(new Claim[]
             {
                 new Claim(ClaimTypes.Role, admin.Role),
-                new Claim(ClaimTypes.Name,$"{admin.FullName}")
+                new Claim(ClaimTypes.Name,$"{admin.FullName}"),
+                new Claim(ClaimTypes.Email,$"{admin.Email}")
             });
 
             var credentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256);
